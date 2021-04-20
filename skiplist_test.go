@@ -78,7 +78,7 @@ func TestInsert(t *testing.T) {
 	t.Parallel()
 
 	// randLevel will get 3 2 5
-	list := New(WithRandSource(rand.NewSource(2)))
+	list := New(WithRandSource(rand.NewSource(2)), WithProb(0.5))
 
 	list.Insert(1, 1)
 	n1 := list.head.next[0]
@@ -108,7 +108,7 @@ func TestDelete(t *testing.T) {
 	t.Parallel()
 
 	// randLevel will get 3 2 5
-	list := New(WithRandSource(rand.NewSource(2)))
+	list := New(WithRandSource(rand.NewSource(2)), WithProb(0.5))
 	list.Insert(1, 1)
 	list.Insert(2, 2)
 	list.Insert(3, 3)
@@ -151,7 +151,7 @@ func TestString(t *testing.T) {
 	t.Parallel()
 
 	// randLevel will get 3 2 5
-	list := New(WithRandSource(rand.NewSource(2)))
+	list := New(WithRandSource(rand.NewSource(2)), WithProb(0.5))
 
 	var lines []string
 
@@ -177,37 +177,211 @@ func TestString(t *testing.T) {
 
 var searchResult interface{} = nil
 
-// go test -v -run=^$ -bench=BenchmarkSearch -benchmem -count=10
-func BenchmarkSearch(b *testing.B) {
-	list := getList()
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		searchResult = list.Search(5000)
-	}
-
-	if searchResult.(int) != 5000 {
-		b.Errorf("want 50, got %v", searchResult)
-	}
+// go test -v -run=^$ -bench=BenchmarkSearch -benchmem -count=4
+func BenchmarkSearch1000(b *testing.B) {
+	benchmarkSearch(b, 1000)
 }
 
-// go test -v -run=^$ -bench=BenchmarkInsertAndDelete -benchmem -count=10
-func BenchmarkInsertAndDelete(b *testing.B) {
-	list := getList()
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		list.Delete(5000)
-		list.Insert(5000, 5000)
-	}
+func BenchmarkSearch10000(b *testing.B) {
+	benchmarkSearch(b, 10000)
 }
 
-func getList() *SkipList {
+func BenchmarkSearch100000(b *testing.B) {
+	benchmarkSearch(b, 100000)
+}
+
+func BenchmarkSearch1000000(b *testing.B) {
+	benchmarkSearch(b, 1000000)
+}
+
+func benchmarkSearch(b *testing.B, n int) {
 	list := New(WithRandSource(rand.NewSource(2)))
-	for i := 0; i < 10000; i++ {
-		list.Insert(float64(i), i)
+	for i := 0; i < n; i++ {
+		list.Insert(float64(n-i), i)
 	}
+	target := float64(n / 2)
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			searchResult = list.Search(target)
+		}
+	})
 
-	return list
+	assert.Equal(b, n/2, searchResult)
+}
+
+// go test -v -run=^$ -bench=BenchmarkInsertAndDelete -benchmem -count=4
+func BenchmarkInsertAndDelete100(b *testing.B) {
+	benchmarkInsertAndDelete(b, 100)
+}
+
+func BenchmarkInsertAndDelete1000(b *testing.B) {
+	benchmarkInsertAndDelete(b, 1000)
+}
+
+func BenchmarkInsertAndDelete10000(b *testing.B) {
+	benchmarkInsertAndDelete(b, 10000)
+}
+
+func BenchmarkInsertAndDelete100000(b *testing.B) {
+	benchmarkInsertAndDelete(b, 100000)
+}
+
+func BenchmarkInsertAndDelete1000000(b *testing.B) {
+	benchmarkInsertAndDelete(b, 1000000)
+}
+
+func benchmarkInsertAndDelete(b *testing.B, n int) {
+	list := New(WithRandSource(rand.NewSource(2)))
+	for i := 0; i < n; i++ {
+		list.Insert(float64(n-i), i)
+	}
+	target := float64(n / 2)
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			list.Delete(target)
+			list.Insert(target, n/2)
+		}
+	})
+}
+
+// go test -v -run=^$ -bench=BenchmarkBestInsert -benchmem -count=4
+func BenchmarkBestInsert100(b *testing.B) {
+	benchmarkBestInsert(b, 100)
+}
+
+func BenchmarkBestInsert1000(b *testing.B) {
+	benchmarkBestInsert(b, 1000)
+}
+
+func BenchmarkBestInsert10000(b *testing.B) {
+	benchmarkBestInsert(b, 10000)
+}
+
+func BenchmarkBestInsert100000(b *testing.B) {
+	benchmarkBestInsert(b, 100000)
+}
+
+func BenchmarkBestInsert1000000(b *testing.B) {
+	benchmarkBestInsert(b, 1000000)
+}
+
+func benchmarkBestInsert(b *testing.B, n int) {
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			list := New(WithRandSource(rand.NewSource(2)))
+			for j := 0; j < n; j++ {
+				list.Insert(float64(n-j), j)
+			}
+		}
+	})
+}
+
+// go test -v -run=^$ -bench=BenchmarkWorstInsert -benchmem -count=4
+func BenchmarkWorstInsert100(b *testing.B) {
+	benchmarkWorstInsert(b, 100)
+}
+
+func BenchmarkWorstInsert1000(b *testing.B) {
+	benchmarkWorstInsert(b, 1000)
+}
+
+func BenchmarkWorstInsert10000(b *testing.B) {
+	benchmarkWorstInsert(b, 10000)
+}
+
+func BenchmarkWorstInsert100000(b *testing.B) {
+	benchmarkWorstInsert(b, 100000)
+}
+
+func BenchmarkWorstInsert1000000(b *testing.B) {
+	benchmarkWorstInsert(b, 1000000)
+}
+
+func benchmarkWorstInsert(b *testing.B, n int) {
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			list := New()
+			for j := 0; j < n; j++ {
+				list.Insert(float64(j), j)
+			}
+		}
+	})
+}
+
+// go test -v -run=^$ -bench=BenchmarkBestDelete -benchmem -count=4
+func BenchmarkBestDelete100(b *testing.B) {
+	benchmarkBestDelete(b, 100)
+}
+
+func BenchmarkBestDelete1000(b *testing.B) {
+	benchmarkBestDelete(b, 1000)
+}
+
+func BenchmarkBestDelete10000(b *testing.B) {
+	benchmarkBestDelete(b, 10000)
+}
+
+func BenchmarkBestDelete100000(b *testing.B) {
+	benchmarkBestDelete(b, 100000)
+}
+
+func BenchmarkBestDelete1000000(b *testing.B) {
+	benchmarkBestDelete(b, 1000000)
+}
+
+func benchmarkBestDelete(b *testing.B, n int) {
+	list := New(WithRandSource(rand.NewSource(2)))
+	for i := 0; i < n; i++ {
+		list.Insert(float64(n-i), i)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			list.Delete(0)
+		}
+	})
+}
+
+// go test -v -run=^$ -bench=BenchmarkWorstDelete -benchmem -count=4
+func BenchmarkWorstDelete100(b *testing.B) {
+	benchmarkWorstDelete(b, 100)
+}
+
+func BenchmarkWorstDelete1000(b *testing.B) {
+	benchmarkWorstDelete(b, 1000)
+}
+
+func BenchmarkWorstDelete10000(b *testing.B) {
+	benchmarkWorstDelete(b, 10000)
+}
+
+func BenchmarkWorstDelete100000(b *testing.B) {
+	benchmarkWorstDelete(b, 100000)
+}
+
+func BenchmarkWorstDelete1000000(b *testing.B) {
+	benchmarkWorstDelete(b, 1000000)
+}
+
+func benchmarkWorstDelete(b *testing.B, n int) {
+	list := New(WithRandSource(rand.NewSource(2)))
+	for i := 0; i < n; i++ {
+		list.Insert(float64(n-i), i)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			list.Delete(float64(n - 1))
+		}
+	})
 }

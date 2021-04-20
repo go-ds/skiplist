@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	defaultProb     float64 = 0.5
-	defaultMaxLevel int     = 17
+	defaultProb     float64 = 1 / math.E
+	defaultMaxLevel int     = 18
 	minLevel        int     = 1
 	maxLevel        int     = 64
 )
@@ -20,7 +20,6 @@ var maxLevelErr = fmt.Errorf("maxLevel for a SkipList must between [%d, %d]", mi
 
 type node struct {
 	next  []*node
-	prev  []*node
 	key   float64
 	value interface{}
 }
@@ -36,6 +35,7 @@ type SkipList struct {
 	length     int
 	randSource rand.Source
 	mut        sync.RWMutex
+	prev       []*node
 }
 
 // New creates a new skip list instance.
@@ -53,6 +53,7 @@ func New(opts ...Option) *SkipList {
 	}
 
 	list.head = &node{next: make([]*node, list.maxLevel, list.maxLevel)}
+	list.prev = make([]*node, list.maxLevel, list.maxLevel)
 
 	list.makeProbs()
 
@@ -64,8 +65,16 @@ func (list *SkipList) Search(key float64) interface{} {
 	list.mut.RLock()
 	defer list.mut.RUnlock()
 
-	if n := list.find(key); n != nil {
-		return n.value
+	cur := list.head
+	for i := list.level - 1; i >= 0; i-- {
+		for cur.next[i] != nil && cur.next[i].key < key {
+			cur = cur.next[i]
+		}
+
+		// Fast path, to see if key exists.
+		if n := cur.next[i]; n != nil && n.key == key {
+			return n.value
+		}
 	}
 
 	return nil
@@ -77,35 +86,36 @@ func (list *SkipList) Insert(key float64, value interface{}) {
 	list.mut.Lock()
 	defer list.mut.Unlock()
 
-	var n *node
-	// Fast path, to see if key exists.
-	if n = list.find(key); n != nil {
-		// Find node, then update the value.
-		n.value = value
-		return
+	cur := list.head
+	for i := list.level - 1; i >= 0; i-- {
+		for cur.next[i] != nil && cur.next[i].key < key {
+			cur = cur.next[i]
+		}
+
+		// Fast path, to see if key exists.
+		if n := cur.next[i]; n != nil && n.key == key {
+			n.value = value
+			return
+		}
+		list.prev[i] = cur
 	}
 
 	// Get level for new node.
 	level := list.randLevel()
-	n = &node{
+	n := &node{
 		next:  make([]*node, level, level),
-		prev:  make([]*node, level, level),
 		key:   key,
 		value: value,
 	}
 
-	cur := list.head
 	// Update every level list
 	for i := level - 1; i >= 0; i-- {
-		for cur.next[i] != nil && cur.next[i].key < key {
-			cur = cur.next[i]
+		if prev := list.prev[i]; prev != nil {
+			n.next[i] = prev.next[i]
+			prev.next[i] = n
+		} else {
+			list.head.next[i] = n
 		}
-		if cur.next[i] != nil {
-			cur.next[i].prev[i] = n
-		}
-		n.prev[i] = cur
-		n.next[i] = cur.next[i]
-		cur.next[i] = n
 	}
 
 	if level > list.level {
@@ -114,20 +124,6 @@ func (list *SkipList) Insert(key float64, value interface{}) {
 	}
 
 	list.length++
-}
-
-func (list *SkipList) find(key float64) *node {
-	cur := list.head
-	for i := list.level - 1; i >= 0; i-- {
-		for cur.next[i] != nil && cur.next[i].key < key {
-			cur = cur.next[i]
-		}
-
-		if cur.next[i] != nil && cur.next[i].key == key {
-			return cur.next[i]
-		}
-	}
-	return nil
 }
 
 // Delete removes a node by key from the list.
@@ -141,18 +137,24 @@ func (list *SkipList) Pop(key float64) interface{} {
 	list.mut.Lock()
 	defer list.mut.Unlock()
 
+	cur := list.head
+	for i := list.level - 1; i >= 0; i-- {
+		for cur.next[i] != nil && cur.next[i].key < key {
+			cur = cur.next[i]
+		}
+
+		list.prev[i] = cur
+	}
+
 	var n *node
 	// Fast path, to see if key exists.
-	if n = list.find(key); n == nil {
+	if n = list.prev[0].next[0]; n == nil || n.key != key {
 		return nil
 	}
 
 	level := len(n.next)
 	for i := level - 1; i >= 0; i-- {
-		n.prev[i].next[i] = n.next[i]
-		if n.next[i] != nil {
-			n.next[i].prev[i] = n.prev[i]
-		}
+		list.prev[i].next[i] = n.next[i]
 	}
 
 	if level == list.level {
