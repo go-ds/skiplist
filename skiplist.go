@@ -16,7 +16,7 @@ const (
 	maxLevel        int     = 64
 )
 
-var maxLevelErr = fmt.Errorf("maxLevel for a SkipList must between [%d, %d]", minLevel, maxLevel)
+var errMaxLevel = fmt.Errorf("maxLevel for a SkipList must between [%d, %d]", minLevel, maxLevel)
 
 type node struct {
 	next  []*node
@@ -228,7 +228,7 @@ type Option func(list *SkipList)
 func WithMaxLevel(level int) Option {
 	return func(list *SkipList) {
 		if level < minLevel || level > maxLevel {
-			panic(maxLevelErr)
+			panic(errMaxLevel)
 		}
 		list.maxLevel = level
 	}
