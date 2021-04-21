@@ -35,7 +35,7 @@ type SkipList struct {
 	length     int
 	randSource rand.Source
 	mut        sync.RWMutex
-	prev       []*node
+	update     []*node
 }
 
 // New creates a new skip list instance.
@@ -53,7 +53,7 @@ func New(opts ...Option) *SkipList {
 	}
 
 	list.head = &node{next: make([]*node, list.maxLevel, list.maxLevel)}
-	list.prev = make([]*node, list.maxLevel, list.maxLevel)
+	list.update = make([]*node, list.maxLevel, list.maxLevel)
 
 	list.makeProbs()
 
@@ -70,11 +70,10 @@ func (list *SkipList) Search(key float64) interface{} {
 		for cur.next[i] != nil && cur.next[i].key < key {
 			cur = cur.next[i]
 		}
+	}
 
-		// Fast path, to see if key exists.
-		if n := cur.next[i]; n != nil && n.key == key {
-			return n.value
-		}
+	if n := cur.next[0]; n != nil && n.key == key {
+		return n.value
 	}
 
 	return nil
@@ -86,18 +85,18 @@ func (list *SkipList) Insert(key float64, value interface{}) {
 	list.mut.Lock()
 	defer list.mut.Unlock()
 
-	cur := list.head
+	cur, update := list.head, list.update
 	for i := list.level - 1; i >= 0; i-- {
 		for cur.next[i] != nil && cur.next[i].key < key {
 			cur = cur.next[i]
 		}
 
-		// Fast path, to see if key exists.
-		if n := cur.next[i]; n != nil && n.key == key {
-			n.value = value
-			return
-		}
-		list.prev[i] = cur
+		update[i] = cur
+	}
+
+	if n := cur.next[0]; n != nil && n.key == key {
+		n.value = value
+		return
 	}
 
 	// Get level for new node.
@@ -110,9 +109,9 @@ func (list *SkipList) Insert(key float64, value interface{}) {
 
 	// Update every level list
 	for i := level - 1; i >= 0; i-- {
-		if prev := list.prev[i]; prev != nil {
-			n.next[i] = prev.next[i]
-			prev.next[i] = n
+		if update[i] != nil {
+			n.next[i] = update[i].next[i]
+			update[i].next[i] = n
 		} else {
 			list.head.next[i] = n
 		}
@@ -137,32 +136,31 @@ func (list *SkipList) Pop(key float64) interface{} {
 	list.mut.Lock()
 	defer list.mut.Unlock()
 
-	cur := list.head
+	cur, update := list.head, list.update
 	for i := list.level - 1; i >= 0; i-- {
 		for cur.next[i] != nil && cur.next[i].key < key {
 			cur = cur.next[i]
 		}
 
-		list.prev[i] = cur
+		update[i] = cur
 	}
 
 	var n *node
 	// Fast path, to see if key exists.
-	if n = list.prev[0].next[0]; n == nil || n.key != key {
+	if n = update[0].next[0]; n == nil || n.key != key {
 		return nil
 	}
 
 	level := len(n.next)
 	for i := level - 1; i >= 0; i-- {
-		list.prev[i].next[i] = n.next[i]
+		update[i].next[i] = n.next[i]
 	}
 
 	if level == list.level {
 		// Try to decrease level.
-		cur := list.head
 		for i := level - 1; i >= 1; i-- {
 			// No more nodes in this level.
-			if cur.next[i] == nil {
+			if list.head.next[i] == nil {
 				list.level--
 			}
 		}
