@@ -171,12 +171,43 @@ func (list *SkipList) Pop(key float64) interface{} {
 	return n.value
 }
 
-// Len returns length of the skip list.
-func (list *SkipList) Len() int {
+// Size returns length of the skip list.
+func (list *SkipList) Size() int {
 	list.mut.Lock()
 	defer list.mut.Unlock()
 
 	return list.length
+}
+
+// Empty indicates if the SkipList is empty.
+func (list *SkipList) Empty() bool {
+	list.mut.Lock()
+	defer list.mut.Unlock()
+
+	return list.length == 0
+}
+
+// Clear resets SkipList.
+func (list *SkipList) Clear() {
+	list.mut.Lock()
+	defer list.mut.Unlock()
+
+	cur := list.head
+	for i := list.level - 1; i >= 0; i-- {
+		for cur.next[i] != nil {
+			released := cur.next[i]
+			// Break links.
+			cur.next[i] = released.next[i]
+			// Release resources.
+			released.next[i] = nil
+			if released.value != nil {
+				released.value = nil
+			}
+		}
+	}
+
+	list.length = 0
+	list.level = 1
 }
 
 // String returns list info

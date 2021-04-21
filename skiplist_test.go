@@ -84,24 +84,24 @@ func TestInsert(t *testing.T) {
 	n1 := list.head.next[0]
 	assert.Equal(t, 3, len(n1.next))
 	assert.Equal(t, 3, list.level)
-	assert.Equal(t, 1, list.Len())
+	assert.Equal(t, 1, list.Size())
 
 	list.Insert(3, 3)
 	n3 := list.head.next[0].next[0]
 	assert.Equal(t, 2, len(n3.next))
 	assert.Equal(t, 3, list.level)
-	assert.Equal(t, 2, list.Len())
+	assert.Equal(t, 2, list.Size())
 
 	list.Insert(2, 2)
 	n2 := list.head.next[0].next[0]
 	assert.Equal(t, 5, len(n2.next))
 	assert.Equal(t, 5, list.level)
-	assert.Equal(t, 3, list.Len())
+	assert.Equal(t, 3, list.Size())
 
 	list.Insert(3, 4)
 	n3 = list.head.next[0].next[0].next[0]
 	assert.Equal(t, 4, n3.value)
-	assert.Equal(t, 3, list.Len())
+	assert.Equal(t, 3, list.Size())
 }
 
 func TestDelete(t *testing.T) {
@@ -114,23 +114,23 @@ func TestDelete(t *testing.T) {
 	list.Insert(3, 3)
 
 	assert.Equal(t, 5, list.level)
-	assert.Equal(t, 3, list.Len())
+	assert.Equal(t, 3, list.Size())
 
 	list.Delete(1)
 	assert.Equal(t, 5, list.level)
-	assert.Equal(t, 2, list.Len())
+	assert.Equal(t, 2, list.Size())
 
 	list.Delete(3)
 	assert.Equal(t, 2, list.level)
-	assert.Equal(t, 1, list.Len())
+	assert.Equal(t, 1, list.Size())
 
 	list.Delete(3)
 	assert.Equal(t, 2, list.level)
-	assert.Equal(t, 1, list.Len())
+	assert.Equal(t, 1, list.Size())
 
 	list.Delete(2)
 	assert.Equal(t, 1, list.level)
-	assert.Equal(t, 0, list.Len())
+	assert.Equal(t, 0, list.Size())
 }
 
 func TestPop(t *testing.T) {
@@ -145,6 +145,20 @@ func TestPop(t *testing.T) {
 	assert.Equal(t, 2, list.Pop(2))
 	assert.Equal(t, 3, list.Pop(3))
 	assert.Equal(t, nil, list.Pop(4))
+}
+
+func TestClear(t *testing.T) {
+	t.Parallel()
+
+	list := New()
+	list.Insert(1, 1)
+	list.Insert(2, 2)
+	list.Insert(3, 3)
+
+	list.Clear()
+	assert.Equal(t, 0, list.Size())
+	assert.Equal(t, true, list.Empty())
+	assert.Equal(t, "level  1 --> nil\n", list.String())
 }
 
 func TestString(t *testing.T) {
