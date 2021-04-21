@@ -154,6 +154,8 @@ func (list *SkipList) Pop(key float64) interface{} {
 	level := len(n.next)
 	for i := level - 1; i >= 0; i-- {
 		update[i].next[i] = n.next[i]
+		// Release resources.
+		n.next[i] = nil
 	}
 
 	if level == list.level {
@@ -168,7 +170,11 @@ func (list *SkipList) Pop(key float64) interface{} {
 
 	list.length--
 
-	return n.value
+	v := n.value
+	// Release resources.
+	n.value = nil
+
+	return v
 }
 
 // Size returns length of the skip list.
