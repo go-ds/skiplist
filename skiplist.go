@@ -257,7 +257,7 @@ const maxRand float64 = 1 << 63
 
 func (list *SkipList) randLevel() (lvl int) {
 	r := float64(list.randSource.Int63()) / maxRand
-	for lvl = 1; lvl < list.maxLevel && r < list.probs[lvl]; lvl++ {
+	for lvl = 1; r < list.probs[lvl] && lvl < list.maxLevel; lvl++ {
 	}
 	return
 }
