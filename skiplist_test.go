@@ -44,6 +44,13 @@ func TestWithRandSource(t *testing.T) {
 	assert.Equal(t, int64(1543039099823358511), list.randSource.Int63())
 }
 
+func TestDisableMutex(t *testing.T) {
+	t.Parallel()
+
+	list := New(DisableMutex())
+	assert.Equal(t, true, list.disableMutex)
+}
+
 func TestMakeProbs(t *testing.T) {
 	list := &SkipList{
 		maxLevel: 4,

@@ -27,15 +27,16 @@ type node struct {
 // SkipList implements a skip list structure.
 // All operations are concurrency safe.
 type SkipList struct {
-	head       *node
-	maxLevel   int
-	level      int
-	prob       float64
-	probs      []float64
-	length     int
-	randSource rand.Source
-	mut        sync.RWMutex
-	update     []*node
+	head         *node
+	maxLevel     int
+	level        int
+	prob         float64
+	probs        []float64
+	length       int
+	randSource   rand.Source
+	mut          sync.RWMutex
+	update       []*node
+	disableMutex bool
 }
 
 // New creates a new skip list instance.
@@ -62,9 +63,10 @@ func New(opts ...Option) *SkipList {
 
 // Search finds a node by key. It returns the node value if found or nil.
 func (list *SkipList) Search(key float64) interface{} {
-	list.mut.RLock()
-	defer list.mut.RUnlock()
-
+	if !list.disableMutex {
+		list.mut.RLock()
+		defer list.mut.RUnlock()
+	}
 	cur := list.head
 	for i := list.level - 1; i >= 0; i-- {
 		for cur.next[i] != nil && cur.next[i].key < key {
@@ -82,8 +84,10 @@ func (list *SkipList) Search(key float64) interface{} {
 // Insert adds a value into the list with the specified key.
 // it updates the node value if the key exists.
 func (list *SkipList) Insert(key float64, value interface{}) {
-	list.mut.Lock()
-	defer list.mut.Unlock()
+	if !list.disableMutex {
+		list.mut.Lock()
+		defer list.mut.Unlock()
+	}
 
 	cur, update := list.head, list.update
 	for i := list.level - 1; i >= 0; i-- {
@@ -133,8 +137,10 @@ func (list *SkipList) Delete(key float64) {
 // Pop removes a node by key from the list.
 // It returns that node value if found or nil.
 func (list *SkipList) Pop(key float64) interface{} {
-	list.mut.Lock()
-	defer list.mut.Unlock()
+	if !list.disableMutex {
+		list.mut.Lock()
+		defer list.mut.Unlock()
+	}
 
 	cur, update := list.head, list.update
 	for i := list.level - 1; i >= 0; i-- {
@@ -179,24 +185,30 @@ func (list *SkipList) Pop(key float64) interface{} {
 
 // Size returns length of the skip list.
 func (list *SkipList) Size() int {
-	list.mut.Lock()
-	defer list.mut.Unlock()
+	if !list.disableMutex {
+		list.mut.Lock()
+		defer list.mut.Unlock()
+	}
 
 	return list.length
 }
 
 // Empty indicates if the SkipList is empty.
 func (list *SkipList) Empty() bool {
-	list.mut.Lock()
-	defer list.mut.Unlock()
+	if !list.disableMutex {
+		list.mut.Lock()
+		defer list.mut.Unlock()
+	}
 
 	return list.length == 0
 }
 
 // Clear resets SkipList.
 func (list *SkipList) Clear() {
-	list.mut.Lock()
-	defer list.mut.Unlock()
+	if !list.disableMutex {
+		list.mut.Lock()
+		defer list.mut.Unlock()
+	}
 
 	cur := list.head
 	for i := list.level - 1; i >= 0; i-- {
@@ -282,5 +294,12 @@ func WithProb(prob float64) Option {
 func WithRandSource(randSource rand.Source) Option {
 	return func(list *SkipList) {
 		list.randSource = randSource
+	}
+}
+
+// DisableMutex disables concurrency safe for skip list.
+func DisableMutex() Option {
+	return func(list *SkipList) {
+		list.disableMutex = true
 	}
 }
