@@ -42,7 +42,6 @@ type SkipList struct {
 // New creates a new skip list instance.
 func New(opts ...Option) *SkipList {
 	list := &SkipList{
-		head:       &node{},
 		maxLevel:   defaultMaxLevel,
 		level:      1,
 		prob:       defaultProb,
@@ -210,18 +209,12 @@ func (list *SkipList) Clear() {
 		defer list.mut.Unlock()
 	}
 
-	cur := list.head
-	for i := list.level - 1; i >= 0; i-- {
-		for cur.next[i] != nil {
-			released := cur.next[i]
-			// Break links.
-			cur.next[i] = released.next[i]
-			// Release resources.
-			released.next[i] = nil
-			if released.value != nil {
-				released.value = nil
-			}
-		}
+	for i := 0; i < list.maxLevel; i++ {
+		list.head.next[i] = nil
+	}
+
+	for i := 0; i < list.maxLevel; i++ {
+		list.update[i] = nil
 	}
 
 	list.length = 0
