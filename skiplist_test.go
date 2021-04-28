@@ -1,6 +1,7 @@
 package skiplist
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"strings"
@@ -8,6 +9,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func ExampleNew() {
+	list := New(WithRandSource(rand.NewSource(2)))
+	list.Insert(1, 1)
+	list.Insert(2, 2)
+	list.Insert(3, 3)
+
+	fmt.Println(list.String())
+
+	// output:
+	// level  1 --> 1.000000(1) <--> 2.000000(2) <--> 3.000000(3) --> nil
+	// level  2 --> 1.000000(1) <--> 2.000000(2) <--> 3.000000(3) --> nil
+	// level  3 --> 3.000000(3) --> nil
+}
 
 func TestWithMaxLevel(t *testing.T) {
 	t.Parallel()
@@ -65,6 +80,25 @@ func TestMakeProbs(t *testing.T) {
 	}
 }
 
+func ExampleSkipList_Search() {
+	list := New()
+	fmt.Println(list.Search(1))
+
+	list.Insert(1, 1)
+	fmt.Println(list.Search(1))
+
+	list.Insert(2, 2)
+	fmt.Println(list.Search(1))
+	fmt.Println(list.Search(2))
+	fmt.Println(list.Search(3))
+	// output:
+	// <nil>
+	// 1
+	// 1
+	// 2
+	// <nil>
+}
+
 func TestSearch(t *testing.T) {
 	t.Parallel()
 
@@ -111,6 +145,22 @@ func TestInsert(t *testing.T) {
 	assert.Equal(t, 3, list.Size())
 }
 
+func ExampleSkipList_Delete() {
+	list := New(WithRandSource(rand.NewSource(2)))
+	list.Insert(1, 1)
+	list.Insert(2, 2)
+	list.Insert(3, 3)
+
+	list.Delete(2)
+
+	fmt.Println(list.String())
+
+	// output:
+	// level  1 --> 1.000000(1) <--> 3.000000(3) --> nil
+	// level  2 --> 1.000000(1) <--> 3.000000(3) --> nil
+	// level  3 --> 3.000000(3) --> nil
+}
+
 func TestDelete(t *testing.T) {
 	t.Parallel()
 
@@ -140,6 +190,25 @@ func TestDelete(t *testing.T) {
 	assert.Equal(t, 0, list.Size())
 }
 
+func ExampleSkipList_Pop() {
+	list := New(WithRandSource(rand.NewSource(2)))
+	list.Insert(1, 1)
+	list.Insert(2, 2)
+	list.Insert(3, 3)
+
+	fmt.Println(list.Pop(2))
+	fmt.Println(list.Pop(4))
+
+	fmt.Println(list.String())
+
+	// output:
+	// 2
+	// <nil>
+	// level  1 --> 1.000000(1) <--> 3.000000(3) --> nil
+	// level  2 --> 1.000000(1) <--> 3.000000(3) --> nil
+	// level  3 --> 3.000000(3) --> nil
+}
+
 func TestPop(t *testing.T) {
 	t.Parallel()
 
@@ -152,6 +221,20 @@ func TestPop(t *testing.T) {
 	assert.Equal(t, 2, list.Pop(2))
 	assert.Equal(t, 3, list.Pop(3))
 	assert.Equal(t, nil, list.Pop(4))
+}
+
+func ExampleSkipList_Clear() {
+	list := New(WithRandSource(rand.NewSource(2)))
+	list.Insert(1, 1)
+	list.Insert(2, 2)
+	list.Insert(3, 3)
+
+	list.Clear()
+
+	fmt.Println(list.String())
+
+	// output:
+	// level  1 --> nil
 }
 
 func TestClear(t *testing.T) {
