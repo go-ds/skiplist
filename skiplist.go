@@ -25,7 +25,7 @@ type node struct {
 }
 
 // SkipList implements a skip list structure.
-// All operations are concurrency safe.
+// All operations are concurrency safe by default.
 type SkipList struct {
 	head         *node
 	maxLevel     int

@@ -20,12 +20,18 @@
 This `golang` package provides skip list implementation.
 
 # Features
+- Search
+- Insert
+- Delete
+- Pop
+- Clear
 
 # Get started
 
 # Benchmark
 
 # TODO
+- Merge list
 
 # References
 - [Skip Lists: A Probabilistic Alternative to Balanced Trees](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.117.6383)
